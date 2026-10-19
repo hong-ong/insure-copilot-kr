@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -72,6 +73,10 @@ def is_broken_char(ch: str) -> bool:
 @lru_cache(maxsize=1)
 def _kiwi():
     """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    # Kiwi 기본 모델은 메모리를 약 500MB 쓴다(실측 2026-10-19). 512MB 무료 서버에서는 KIWI_ENABLED=false 로 끄고
+    # 깨진 문자·같은 음절 반복·글자 다양성 규칙만으로 판정한다 (글꼴 깨진 PDF는 이 규칙들로 잡힌다).
+    if os.getenv("KIWI_ENABLED", "true").lower() in ("0", "false", "no"):
+        return None
     try:
         from kiwipiepy import Kiwi
 

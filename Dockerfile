@@ -1,4 +1,4 @@
-# AI 백엔드 컨테이너 — Hugging Face Spaces(Docker, 무료 CPU) 배포용. 포트 7860은 Spaces 기본값.
+# AI 백엔드 컨테이너 — Render(무료 512MB) 기준. 포트는 플랫폼이 주는 PORT 환경변수를 따른다(없으면 7860).
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -21,4 +21,4 @@ ENV PATH="/home/app/code/.venv/bin:$PATH" MART_PATH=/home/app/code/data/processe
 RUN python -m insure_copilot.genbi.mart
 
 EXPOSE 7860
-CMD ["uvicorn", "insure_copilot.api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["sh", "-c", "uvicorn insure_copilot.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
