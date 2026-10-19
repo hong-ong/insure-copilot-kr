@@ -62,16 +62,16 @@ def handle_question(
     q = masked.text
 
     if conversation_id:
-        conv = (
+        rows = (
             sb.table("conversations")
             .select("id, user_id")
             .eq("id", conversation_id)
-            .single()
+            .limit(1)
             .execute()
             .data
         )
-        if not conv or conv["user_id"] != ctx.user_id:
-            raise PermissionError("다른 사용자의 대화입니다.")
+        if not rows or rows[0]["user_id"] != ctx.user_id:
+            raise PermissionError("대화를 찾지 못했거나 다른 사용자의 대화입니다.")
     else:
         conv = (
             sb.table("conversations")
