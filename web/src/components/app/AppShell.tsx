@@ -32,14 +32,15 @@ function Shell({ children }: { children: React.ReactNode }) {
       </div>
 
       {viewer && (
-        <>
-          <div className="hidden w-[440px] shrink-0 lg:block">
-            <DocumentViewer documentId={viewer.document_id} chunkId={viewer.chunk_id} onClose={closeViewer} />
-          </div>
-          <div className="fixed inset-0 z-40 bg-bg lg:hidden">
-            <DocumentViewer documentId={viewer.document_id} chunkId={viewer.chunk_id} onClose={closeViewer} />
-          </div>
-        </>
+        // 데스크톱: 오른쪽 440px 패널 / 모바일: 전체 화면 시트 (하나만 그려서 문서를 한 번만 불러온다)
+        <div className="fixed inset-0 z-40 bg-bg lg:static lg:z-auto lg:w-[440px] lg:shrink-0">
+          <DocumentViewer
+            key={`${viewer.document_id}-${viewer.chunk_id}`}
+            documentId={viewer.document_id}
+            chunkId={viewer.chunk_id}
+            onClose={closeViewer}
+          />
+        </div>
       )}
       <NoticeModal />
     </div>

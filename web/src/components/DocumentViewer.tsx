@@ -31,7 +31,11 @@ interface ChunkPos {
 const PAGE_BREAK = "\f";
 
 function render(text: string) {
-  return text.split(PAGE_BREAK).join("\n\n---\n\n");
+  // 약관은 한 줄에 한 항(①②③)이라, 마크다운이 줄바꿈 하나를 공백으로 합치지 않게 강제 줄바꿈으로 바꾼다
+  return text
+    .split(PAGE_BREAK)
+    .join("\n\n---\n\n")
+    .replace(/([^\n])\n(?!\n)/g, "$1  \n");
 }
 
 export function DocumentViewer({

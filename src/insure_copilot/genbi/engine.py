@@ -122,7 +122,11 @@ def answer_metric(question: str, profile: dict) -> MetricAnswer:
     scope_sql, scope_label, can_drill = scope_for(profile)
     group_by = choice.get("group_by") or "none"
     notes = []
-    if group_by == "agent" and not can_drill:
+    if group_by == "agent" and profile.get("role") == "agent":
+        group_by = (
+            "none"  # 설계사의 "내 실적" 질문 → 이미 본인으로 한정돼 있으니 안내 없이 한 숫자로
+        )
+    elif group_by == "agent" and not can_drill:
         group_by, notes = (
             "none",
             ["설계사별 상세는 본사 권한에서만 볼 수 있어 전체 값으로 보여 드려요."],

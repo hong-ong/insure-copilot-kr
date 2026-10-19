@@ -330,11 +330,17 @@ def _impacted(document_id: str) -> tuple[list[dict], list[dict]]:
         .data
         or []
     )
+    # 개정안이 올라오기 '전'에 나간 답변만 대상. 이후 답변이 구판을 인용한 건 "이전 가입자는…" 비교 안내라 정상이다.
+    revised_at = (
+        sb.table("documents").select("created_at").eq("id", document_id).single().execute().data
+    )["created_at"]
     impacted: dict[str, dict] = {}
     for c in cites:
         if re.sub(r"#\d+$", "", c.get("chunk_key") or "") not in changed or not c.get("messages"):
             continue
         m = c["messages"]
+        if m["created_at"] >= revised_at:
+            continue
         item = impacted.setdefault(
             m["id"],
             {

@@ -95,7 +95,10 @@ def process_upload(document_id: str, file_name: str, data: bytes, doc_type: str)
     outcome = parse_file(file_name, data)
 
     disease_codes = doc_type not in ("terms", "law")
-    masked_pages = [masking.mask(p, disease_codes=disease_codes).text for p in outcome.pages]
+    masked_pages = [
+        masking.mask(p, disease_codes=disease_codes, person_health=disease_codes).text
+        for p in outcome.pages
+    ]
     sb.table("documents").update(
         {
             "status": {"approved": "parsing", "held": "held", "rejected": "rejected"}[

@@ -28,7 +28,7 @@ JSON으로만 답하세요: {{"answer": "...", "citations": ["S1"], "insufficien
 REFUSE_TEXT = (
     "특정 고객의 보험금 지급 여부는 제가 판단할 수 없어요. "
     "지급 여부는 사고 경위·진단 내용·가입 약관을 종합해 **심사·지급 담당 부서**가 결정합니다.\n\n"
-    "판단에 참고할 수 있는 **관련 조문**을 아래에 안내해 드릴게요. 판단이 필요하면 `법무팀에 문의`를 눌러 주세요."
+    "판단에 참고할 수 있는 **관련 조문**을 아래에 안내해 드릴게요. 판단이 필요하면 아래 **법무팀에 문의** 버튼을 눌러 주세요."
 )
 
 OUT_OF_SCOPE_TEXT = (
@@ -79,10 +79,11 @@ def _select_for_as_of(hits: list[Hit], as_of: str) -> list[Hit]:
 
 def answer_rag(client: Client, question: str, history: list[dict], as_of: str | None) -> Answer:
     """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    query = search_query(question, history)
     if as_of:
-        hits = _select_for_as_of(search(client, question, include_expired=True), as_of)
+        hits = _select_for_as_of(search(client, query, include_expired=True), as_of)
     else:
-        hits = search(client, question)
+        hits = search(client, query)
         hits = hits + previous_versions(client, hits[:3])
     if not hits:
         return Answer(
@@ -96,15 +97,16 @@ def answer_rag(client: Client, question: str, history: list[dict], as_of: str | 
     data, result = complete_json(messages, trace_name="rag_answer", max_tokens=1200)
 
     # 답변 검증: 근거 번호가 실제 검색 결과 안에 있어야 하고, 하나도 없으면 거절로 바꾼다.
-    cited = []
-    for ref in data.get("citations") or []:
-        try:
-            idx = int(str(ref).strip().lstrip("Ss")) - 1
-        except ValueError:
-            continue
+    answer_text = (data.get("answer") or "").strip()
+    refs = [str(r) for r in data.get("citations") or []] + _REF_NUM.findall(
+        " ".join(_REF_GROUP.findall(answer_text))
+    )
+    cited: list[Hit] = []
+    for ref in refs:
+        digits = re.sub(r"\D", "", ref)
+        idx = int(digits) - 1 if digits else -1
         if 0 <= idx < len(hits) and hits[idx] not in cited:
             cited.append(hits[idx])
-    answer_text = (data.get("answer") or "").strip()
     if data.get("insufficient") or not cited or not answer_text:
         return Answer(
             content=INSUFFICIENT_TEXT,
@@ -117,13 +119,31 @@ def answer_rag(client: Client, question: str, history: list[dict], as_of: str | 
                 "raw": json.dumps(data, ensure_ascii=False)[:500],
             },
         )
-    # 본문 속 [S3] 번호를 출처 목록 순서(1, 2, ...)로 다시 매긴다
-    for new_idx, h in enumerate(cited, 1):
-        old_idx = hits.index(h) + 1
-        answer_text = answer_text.replace(f"[S{old_idx}]", f"[#{new_idx}]")
-    answer_text = answer_text.replace("[#", "[")
-    answer_text = re.sub(r"\[S\d+\]", "", answer_text)
+    # 본문 속 [S3] · [S1, S2] · [3] 번호를 출처 목록 순서(1, 2, ...)로 다시 매긴다
+    new_num = {hits.index(h) + 1: i for i, h in enumerate(cited, 1)}
+
+    def renumber(m: re.Match[str]) -> str:
+        """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+        nums = [new_num.get(int(n)) for n in _REF_NUM.findall(m.group(0))]
+        return "".join(f"[{n}]" for n in dict.fromkeys(nums) if n)
+
+    answer_text = _REF_GROUP.sub(renumber, answer_text)
     return Answer(content=answer_text, route="rag", citations=cited, llm=result)
+
+
+# [S1] / [S1, S3] / [S1][S2] / [2] 같은 인용 표기
+_REF_GROUP = re.compile(r"\[\s*S?\d{1,2}(?:\s*[,，]\s*S?\d{1,2})*\s*\]")
+_REF_NUM = re.compile(r"(\d{1,2})")
+
+
+def search_query(question: str, history: list[dict]) -> str:
+    """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    # "작년에 가입한 고객은?"처럼 짧은 후속 질문은 그것만으로 검색하면 근거를 못 찾는다
+    # → 직전 사용자 질문을 앞에 붙여 검색한다 (5주차 질의 재작성 실험의 가장 단순한 형태)
+    previous = [h["content"] for h in history if h.get("role") == "user"]
+    if previous and len(question) < 30:
+        return f"{previous[-1]} {question}"
+    return question
 
 
 def answer_refuse(client: Client, question: str) -> Answer:

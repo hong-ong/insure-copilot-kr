@@ -18,8 +18,9 @@ class Settings:
     """모델 이름 등 실행 설정을 코드 곳곳에 하드코딩하지 않기 위해 모아 둔다."""
 
     # LLM (LiteLLM 모델 문자열)
-    default_model: str = os.getenv("DEFAULT_MODEL", "gemini/gemini-flash-latest")
-    fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini/gemini-flash-lite-latest")
+    default_model: str = os.getenv("DEFAULT_MODEL", "gemini/gemini-flash-lite-latest")
+    fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini/gemini-2.5-flash")
+    llm_timeout: float = float(os.getenv("LLM_TIMEOUT", "25"))  # 초. 넘으면 대체 모델로
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "gemini/gemini-embedding-001")
     embedding_dim: int = int(os.getenv("EMBEDDING_DIM", "768"))
     # Gemini 생각(thinking) 수준. 비우면 모델 기본값(생각을 많이 해서 느리고 토큰을 더 씀)

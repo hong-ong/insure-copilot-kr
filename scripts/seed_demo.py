@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import secrets
 import sys
 from pathlib import Path
 
@@ -99,9 +100,147 @@ def upload(file_name: str, row: dict) -> str:
     return doc["id"]
 
 
+SAMPLE_EMAIL = "sample-agent@gaon-ax.invalid"
+
+
+def _sample_user() -> str:
+    """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    sb = db.service()
+    for u in sb.auth.admin.list_users():
+        if u.email == SAMPLE_EMAIL:
+            return u.id
+    user = sb.auth.admin.create_user(
+        {"email": SAMPLE_EMAIL, "password": secrets.token_urlsafe(24), "email_confirm": True}
+    ).user
+    sb.table("profiles").upsert(
+        {
+            "id": user.id,
+            "display_name": "샘플 설계사(가상)",
+            "team": "sales",
+            "role": "agent",
+            "agent_code": "A0042",
+            "onboarded": True,
+            "ai_notice_agreed_at": "2026-03-01T09:00:00+09:00",
+        }
+    ).execute()
+    return user.id
+
+
+def _conversation(user_id: str, at: str, question: str, answer: dict, cites: list[dict]) -> str:
+    """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    sb = db.service()
+    conv = (
+        sb.table("conversations")
+        .insert({"user_id": user_id, "title": question[:40], "created_at": at, "updated_at": at})
+        .execute()
+        .data[0]
+    )
+    sb.table("messages").insert(
+        {
+            "conversation_id": conv["id"],
+            "user_id": user_id,
+            "role": "user",
+            "content": question,
+            "created_at": at,
+        }
+    ).execute()
+    msg = (
+        sb.table("messages")
+        .insert(
+            {
+                "conversation_id": conv["id"],
+                "user_id": user_id,
+                "role": "assistant",
+                "created_at": at,
+                "model": "gemini/gemini-flash-lite-latest",
+                "prompt_tokens": 1850,
+                "completion_tokens": 120,
+                "cost_usd": 0.00085,
+                "latency_ms": 2400,
+                **answer,
+            }
+        )
+        .execute()
+        .data[0]
+    )
+    for i, c in enumerate(cites, 1):
+        sb.table("citations").insert({"message_id": msg["id"], "rank": i, **c}).execute()
+    return msg["id"]
+
+
+def seed_activity(old_terms_id: str) -> None:
+    """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    sb = db.service()
+    uid = _sample_user()
+    chunk = (
+        sb.table("chunks")
+        .select("id, chunk_key, heading")
+        .eq("document_id", old_terms_id)
+        .eq("chunk_key", "제4조-2")
+        .single()
+        .execute()
+        .data
+    )
+    # ① 개정 전(2026-03)에 받은 답변 — 2025.07 판 제4조 ②항 인용 → 개정 후 '개정 영향 분석'에 잡힌다
+    old_answer = _conversation(
+        uid,
+        "2026-03-15T10:20:00+09:00",
+        "도수치료 연간 한도가 얼마야?",
+        {
+            "route": "rag",
+            "content": "비급여 도수치료·체외충격파·증식치료는 합산해 연간 350만원 한도 내에서 최대 50회까지 보상됩니다 [1].",
+        },
+        [
+            {
+                "chunk_id": chunk["id"],
+                "document_id": old_terms_id,
+                "chunk_key": chunk["chunk_key"],
+                "label": f"가온 실손의료비보장 특별약관 · {chunk['heading']} · 2025.07 판",
+            }
+        ],
+    )
+    # 개정 후 이 답변을 다시 본 설계사가 👎
+    sb.table("feedback").insert(
+        {
+            "message_id": old_answer,
+            "user_id": uid,
+            "rating": -1,
+            "reasons": ["약관 버전이 틀림"],
+            "comment": "4월 개정 이후 가입자는 300만원·40회 아닌가요?",
+        }
+    ).execute()
+    # ② 판단 요구 → 법무팀 문의 (대기)
+    refuse = {
+        "route": "refuse",
+        "refused": True,
+        "content": "특정 고객의 보험금 지급 여부는 제가 판단할 수 없어요.",
+    }
+    q1 = "김OO 고객 [건강정보] 도수치료 30회 받았는데 보험금 나와요?"
+    m1 = _conversation(uid, "2026-10-14T14:05:00+09:00", q1, refuse, [])
+    sb.table("legal_inquiries").insert({"message_id": m1, "user_id": uid, "question": q1}).execute()
+    # ③ 판단 요구 → 법무팀 답변 완료
+    q2 = "이 고객 피부과 레이저 시술 받았는데 실손으로 보상돼요?"
+    m2 = _conversation(uid, "2026-10-08T11:30:00+09:00", q2, refuse, [])
+    sb.table("legal_inquiries").insert(
+        {
+            "message_id": m2,
+            "user_id": uid,
+            "question": q2,
+            "status": "answered",
+            "answered_at": "2026-10-08T16:00:00+09:00",
+            "answer": "가온 실손의료비 특약 제5조 ①항 2호에 따라 미용 목적의 시술은 보상하지 않습니다. "
+            "다만 진단서로 치료 목적이 확인되면 보상 심사에서 판단하니, 고객에게 지급을 확답하지 말고 청구 접수를 안내해 주세요.",
+        }
+    ).execute()
+    print("  샘플 대화 3건 · 판단 문의 2건(대기 1·답변 1) · 👎 피드백 1건")
+
+
 def reset() -> None:
     """TODO(재홍): 무엇을 왜 하는가 한 문장"""
     sb = db.service()
+    for u in sb.auth.admin.list_users():
+        if u.email == SAMPLE_EMAIL:
+            sb.auth.admin.delete_user(u.id)  # 대화·문의·피드백은 on delete cascade로 함께 지워진다
     docs = (
         sb.table("documents").select("id, storage_path").is_("uploaded_by", "null").execute().data
         or []
@@ -141,6 +280,11 @@ def main() -> int:
                 "effective_from": eff,
             },
         )
+
+    print(
+        "2-1) 샘플 사용 기록 (개정 전 답변 · 판단 문의 · 피드백) — 법무팀·관리자 데모가 비어 보이지 않게"
+    )
+    seed_activity(ids[DOCS[0][0]])
 
     print("3) 개정안 업로드 (같은 문서의 새 판)")
     old = (

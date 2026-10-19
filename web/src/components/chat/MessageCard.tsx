@@ -20,6 +20,11 @@ import { api } from "@/lib/api";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ROUTE_LABEL, type ChatMessage, type Citation } from "@/lib/types";
 
+// 미리보기에서는 마크다운 기호(### 제목, - 목록)를 지운다
+function plain(text: string) {
+  return text.replace(/^#{1,6}\s*/gm, "").replace(/^\s*[-*]\s+/gm, "").replace(/\s+/g, " ").trim();
+}
+
 const REASONS = ["답이 틀림", "출처가 틀림", "약관 버전이 틀림", "거절하지 말았어야 함", "거절했어야 함", "기타"];
 
 const ROUTE_STYLE: Record<string, string> = {
@@ -53,7 +58,10 @@ export function MessageCard({ m, initialRating }: { m: ChatMessage; initialRatin
   const cites = m.citations || [];
   const meta = (m.meta || {}) as Record<string, unknown>;
   const route = m.route || "rag";
-  const versions = Array.from(new Set(cites.filter((c) => !c.is_expired && c.version_label).map((c) => c.version_label)));
+  // 판 배지는 약관처럼 'OOOO.OO 판'으로 관리되는 문서만 (사내 문서의 '개정 반영' 같은 메모는 제외)
+  const versions = Array.from(
+    new Set(cites.filter((c) => !c.is_expired && c.version_label?.endsWith("판")).map((c) => c.version_label)),
+  );
   const hasExpired = cites.some((c) => c.is_expired);
 
   async function rate(value: 1 | -1, extra?: { reasons: string[]; comment: string }) {
@@ -139,7 +147,7 @@ export function MessageCard({ m, initialRating }: { m: ChatMessage; initialRatin
               <button
                 key={`${c.chunk_id}-${c.rank}`}
                 onClick={() => open(c)}
-                title={c.snippet}
+                title={c.snippet ? plain(c.snippet) : undefined}
                 className="flex items-start gap-2 rounded-lg border border-line px-3 py-2 text-left text-xs hover:border-brand hover:bg-brand-soft"
               >
                 <span className="mt-px flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-soft px-1 text-[10px] font-bold text-brand">
@@ -148,7 +156,7 @@ export function MessageCard({ m, initialRating }: { m: ChatMessage; initialRatin
                 <span className="min-w-0 flex-1">
                   <span className="font-semibold">{c.label}</span>
                   {c.is_expired && <span className="ml-1.5 rounded bg-warning-soft px-1 py-px text-[10px] font-semibold text-warning">구버전</span>}
-                  {c.snippet && <span className="mt-0.5 line-clamp-1 block text-muted">{c.snippet}</span>}
+                  {c.snippet && <span className="mt-0.5 line-clamp-1 block text-muted">{plain(c.snippet)}</span>}
                 </span>
               </button>
             ))}
@@ -165,8 +173,7 @@ export function MessageCard({ m, initialRating }: { m: ChatMessage; initialRatin
           ) : (
             <button
               onClick={sendInquiry}
-              disabled={inquiry === "busy" || profile?.is_demo}
-              title={profile?.is_demo ? "데모 계정은 문의를 보낼 수 없어요" : undefined}
+              disabled={inquiry === "busy"}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
               {inquiry === "busy" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scale className="h-3.5 w-3.5" />}

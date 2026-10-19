@@ -80,3 +80,15 @@ def test_extract_hwpx_and_docx():
     d.save(out)
     ex = formats.extract("b.docx", out.getvalue())
     assert ex.file_format == "docx" and "보험금" in ex.text
+
+
+def test_terms_and_dates_are_not_over_masked():
+    terms = (
+        "① 회사는 피보험자가 질병 또는 상해로 의료기관에서 입원하여 치료를 받은 경우 보상합니다."
+    )
+    assert masking.mask(terms, disease_codes=False, person_health=False).text == terms
+    assert (
+        "회사는 피보험자가" in masking.mask(terms).text
+    )  # 사용자 입력 모드에서도 '회사'는 이름이 아니다
+    assert "2026-10-12" in masking.mask("회의일 2026-10-12, 계좌 110-123-456789").text
+    assert "110-123-456789" not in masking.mask("계좌 110-123-456789").text

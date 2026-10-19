@@ -104,9 +104,9 @@ export default function OpsPage() {
                 <div className="mt-3 flex h-32 items-end gap-1">
                   {data.daily.length === 0 && <p className="text-sm text-muted">기록이 없어요.</p>}
                   {data.daily.map((d) => (
-                    <div key={d.date} className="group flex flex-1 flex-col items-center justify-end">
-                      <span className="mb-1 text-[10px] text-muted opacity-0 group-hover:opacity-100">{d.queries}</span>
-                      <div className="w-full max-w-10 rounded-t bg-brand" style={{ height: `${(d.queries / maxDaily) * 100}%` }} title={`${d.date}: ${d.queries}건 · ${usd(d.cost_usd)}`} />
+                    <div key={d.date} className="group flex h-full flex-1 flex-col items-center justify-end">
+                      <span className="mb-1 text-[10px] text-muted">{d.queries}</span>
+                      <div className="w-full max-w-10 rounded-t bg-brand" style={{ height: `${Math.max(4, (d.queries / maxDaily) * 75)}%` }} title={`${d.date}: ${d.queries}건 · ${usd(d.cost_usd)}`} />
                       <span className="mt-1 text-[10px] text-muted">{d.date.slice(5)}</span>
                     </div>
                   ))}

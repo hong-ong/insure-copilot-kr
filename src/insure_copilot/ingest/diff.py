@@ -53,6 +53,8 @@ def build_diffs(old_document_id: str, new_document_id: str, version_group_id: st
     rows: list[dict] = []
     for key in sorted(set(old) | set(new), key=lambda k: (new.get(k) or old.get(k))["seq"]):
         o, n = old.get(key), new.get(key)
+        if key == "전문":  # 첫 조 앞 머리말(판 이름·적용일)은 판마다 당연히 달라서 비교에서 뺀다
+            continue
         if o and n and _norm(o["text"]) == _norm(n["text"]):
             continue
         change = "changed" if o and n else ("added" if n else "removed")

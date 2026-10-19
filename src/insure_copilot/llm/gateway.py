@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -14,7 +15,9 @@ import litellm
 
 from insure_copilot.config import settings
 
+log = logging.getLogger(__name__)
 litellm.drop_params = True
+litellm.suppress_debug_info = True
 if os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"):
     litellm.success_callback = ["langfuse"]
     litellm.failure_callback = ["langfuse"]
@@ -70,7 +73,8 @@ def complete(
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
-                "num_retries": 2,
+                "num_retries": 1,
+                "timeout": settings.llm_timeout,
                 "metadata": {"trace_name": trace_name, "trace_id": trace_id},
             }
             if json_mode:
@@ -81,6 +85,7 @@ def complete(
                 kwargs["reasoning_effort"] = settings.reasoning_effort
             resp = litellm.completion(**kwargs)
         except Exception as e:  # 주 모델 실패 → 대체 모델로
+            log.warning("LLM 호출 실패 (%s, %s): %s", m, trace_name, str(e)[:300])
             last_error = e
             continue
         usage = getattr(resp, "usage", None)

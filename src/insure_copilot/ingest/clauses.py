@@ -91,6 +91,10 @@ def split_clauses(text: str, page_starts: list[int]) -> list[Chunk]:
     for i, m in enumerate(articles):
         start = m.start()
         end = articles[i + 1].start() if i + 1 < len(articles) else len(text)
+        # 다음 조 앞에 관·특약·별표 제목이 있으면 거기서 끊는다 (마지막 항에 "## 제2관 ..."이 붙지 않게)
+        for at, _ in chapters + parts:
+            if start < at < end:
+                end = at
         body = text[start:end].strip()
         article_no = _norm_article(m.group(1))
         title = (m.group(2) or "").strip() or None
