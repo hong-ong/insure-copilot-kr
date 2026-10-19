@@ -75,6 +75,10 @@ def complete(
             }
             if json_mode:
                 kwargs["response_format"] = {"type": "json_object"}
+            # Gemini 3 계열은 기본으로 '생각(thinking)'에 출력 토큰을 먼저 써서, 짧은 max_tokens면 답이 잘린다.
+            # (실측 2026-10-19: max_tokens 200 중 188을 생각에 써서 라우터 JSON이 잘림 → low로 6토큰에 완료)
+            if settings.reasoning_effort and m.startswith("gemini/"):
+                kwargs["reasoning_effort"] = settings.reasoning_effort
             resp = litellm.completion(**kwargs)
         except Exception as e:  # 주 모델 실패 → 대체 모델로
             last_error = e

@@ -22,6 +22,8 @@ class Settings:
     fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini/gemini-flash-lite-latest")
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "gemini/gemini-embedding-001")
     embedding_dim: int = int(os.getenv("EMBEDDING_DIM", "768"))
+    # Gemini 생각(thinking) 수준. 비우면 모델 기본값(생각을 많이 해서 느리고 토큰을 더 씀)
+    reasoning_effort: str = os.getenv("REASONING_EFFORT", "low")
     local_model: str = os.getenv("LOCAL_MODEL", "ollama/qwen2.5:7b")
     # 무료 티어여도 "상용 전환 시 비용"을 보여주기 위해 환산 단가를 둔다 (USD / 1M tokens)
     price_input_per_m: float = float(os.getenv("PRICE_INPUT_PER_M", "0.30"))
