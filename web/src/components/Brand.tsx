@@ -37,6 +37,9 @@ export function Footer() {
           <Link className="hover:text-text" href="/about/ai">
             AI 사용 고지
           </Link>
+          <Link className="hover:text-text" href="/about/privacy">
+            개인정보처리방침
+          </Link>
           <span>© 2026</span>
         </nav>
       </div>
