@@ -29,6 +29,7 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.6",
     "pip-system-certs>=4.0",  # 이 PC의 HTTPS 검사 프로그램 때문에 Windows 인증서 저장소를 쓰게 함
+    "docling>=2.141.0",
 ]
 
 [build-system]
