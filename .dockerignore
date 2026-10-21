@@ -1,0 +1,9 @@
+.venv
+.git
+web
+eval/results
+data/raw
+data/processed
+**/__pycache__
+.env
+.env.*

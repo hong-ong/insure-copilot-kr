@@ -8,12 +8,27 @@ dependencies = [
     # 1주차: LLM 호출과 토큰·비용 측정
     "litellm>=1.50",
     "python-dotenv>=1.0",
+    # 10 → 1 서비스: AI 백엔드 API
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "supabase>=2.10",
+    # 자체 파서 (PDF · HWP · HWPX · DOCX) + 한글 인식률
+    "pymupdf>=1.24",
+    "olefile>=0.47",
+    "python-docx>=1.1",
+    "kiwipiepy>=0.20",
+    # GenBI 정보계
+    "duckdb>=1.1",
+    "faker>=30.0",
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    "pip-system-certs>=4.0",  # 이 PC의 HTTPS 검사 프로그램 때문에 Windows 인증서 저장소를 쓰게 함
 ]
 
 [build-system]
@@ -29,6 +44,14 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]  # 한국어 문자열·프롬프트는 줄을 억지로 끊지 않는다 (코드는 ruff format이 100자로 맞춤)
+
+[tool.ruff.lint.per-file-ignores]
+"src/insure_copilot/api/*" = ["B008"]  # FastAPI의 Depends()/File() 기본값 패턴
+
+[tool.ruff.lint.isort]
+known-first-party = ["insure_copilot"]
+known-third-party = ["supabase"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

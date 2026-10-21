@@ -4,6 +4,9 @@
 목적은 "AI 기획자(AI PM)로서 AI 서비스를 기획하고, 품질을 정의하고, 수치로 검증할 수 있다"를 보여주는 것이다.
 전체 계획은 `docs/curriculum.md`에 있다. 작업 전에 해당 주차 섹션을 먼저 읽는다.
 
+> **2026-10-19부터 10 → 1(역방향) 방식.** 완성형 서비스 "가온생명 AX 어시스턴트"를 먼저 만들고,
+> 기능별 "갭 체크카드"로 부족한 공부를 메운다. 구성안: `docs/planning/00-portfolio-plan.md` (기능·화면의 기준 문서).
+
 ## 사용자에 대해
 
 - 저장소 주인은 기획자다. 개발은 배우는 중이다. 코드 설명과 용어 설명을 아끼지 않는다.
@@ -39,8 +42,15 @@
    | 6 | 지표 5개의 정답 SQL |
    | 7 | 의도 분류 프롬프트와 분기 조건 |
 
+   **10 → 1 예외 (2026-10-19 합의):** 서비스 동작에 꼭 필요한 직접 작성 항목(2주차 조항 정규식·청크 스키마,
+   6주차 지표 SQL, 7주차 의도 분류 프롬프트)은 AI가 **임시본**을 만든다. 임시본에는
+   `[임시-AI작성 → 직접 작성으로 교체]` 표시를 달고, 사용자가 해당 주차 공부 때 직접 다시 써서 교체한다.
+   교체 후 표시를 `[직접 작성]`으로 바꾼다. 평가용 항목(골든셋·Recall@5/MRR·동의어 사전)은 임시본 없이 빈 틀로 둔다.
+
 2. **함수마다 "무엇을 왜 하는가" 한 문장.** AI가 쓴 코드도 커밋 전에 사용자가 직접 docstring을 다는 게 원칙이다.
    새 함수를 만들 때는 docstring 자리에 `TODO(재홍): 무엇을 왜 하는가 한 문장`을 남겨 사용자가 채우게 한다.
+   10 → 1 방식에서는 AI가 만든 Python 함수가 TODO docstring을 단 채로 커밋되고, 채우는 일이 갭 체크의 일부다.
+   (TypeScript 화면 코드는 컴포넌트 단위 한 줄 주석만 둔다.)
 3. **실험은 학습 로그에 남긴다.** 실험을 돌리면 `docs/learning-log.md`에 날짜 · 가설 · 결과 · 배운 점 형식으로 항목 초안을 추가하고, "배운 점"은 사용자가 채우도록 비워 둔다.
 4. **한 번에 변수 하나.** 5주차 실험은 변수 하나만 바꾼다. 여러 개를 섞자고 하면 먼저 경고한다.
 5. **실패한 실험도 지우지 않는다.** 결과가 나빠도 기록이 포트폴리오 재료다.
@@ -54,18 +64,24 @@
 
 ## 기술 스택
 
-- Python 3.12 + uv (`uv sync`, `uv run ...`, `uv add ...`)
-- LLM 호출은 반드시 **LiteLLM**을 거친다 (모델 교체·비용 로그·fallback을 한 곳에서). 공급자 SDK를 직접 부르지 않는다.
-- 주차별로 의존성을 추가한다. 미리 다 깔지 않는다.
-  - 2주차: docling, HWP 파서 / 3주차: chromadb, sentence-transformers(bge-m3), streamlit, langchain
-  - 4주차: langfuse, ragas / 5주차: kiwipiepy, rank-bm25, 리랭커 / 6주차: duckdb, faker (도전: dbt-metricflow)
-  - 7주차: langgraph
+- **화면:** Next.js (App Router, TypeScript, Tailwind) — `web/`. Node는 `C:\develop\_tools\node` (PATH 미등록, 세션 PATH로 사용)
+- **인증·DB·파일:** Supabase (Auth: 이메일·Google·Kakao·익명=데모 계정, Postgres + pgvector, Storage). 권한은 RLS로 강제
+- **AI 백엔드:** Python 3.12 + uv + FastAPI — `src/insure_copilot/`. uv는 `C:\develop\_tools\uv\uv.exe`
+- LLM·임베딩 호출은 반드시 **LiteLLM**을 거친다 (모델 교체·비용 로그·fallback을 한 곳에서). 공급자 SDK를 직접 부르지 않는다.
+  - 주 모델: Gemini 무료 티어 (`gemini/gemini-flash-latest`, fallback `gemini/gemini-flash-lite-latest`), 임베딩 `gemini/gemini-embedding-001`(768차원)
+- 파서: PyMuPDF(PDF) · HWP5(olefile) · HWPX(XML) · python-docx, 글자가 깨지면 Gemini 비전 OCR로 재시도
+- 정보계: DuckDB + Faker 가상 데이터 / 관측: Langfuse(키가 있을 때만)
+- 배포: Vercel(web: gaon-ax) + Vercel Python 함수(api: gaon-ax-api) + Supabase — `docs/setup.md` 5장
+- 커리큘럼(Streamlit·Chroma·bge-m3·Docling)과 다른 이유는 `docs/adr/0001~0003`. 커리큘럼 실험(E2 임베딩 비교 등)은 이 구조 위에서 그대로 한다.
 - 린트·포맷: ruff. 테스트: pytest.
 
 ## 저장소 구조
 
 ```
-src/insure_copilot/   # 패키지. 기능이 생길 때마다 모듈 추가 (ingest/, retrieval/, genbi/, agent/ ...)
+web/                  # Next.js 화면 (ChatGPT형 레이아웃)
+supabase/migrations/  # DB 스키마·RLS
+src/insure_copilot/   # AI 백엔드 (api/, ingest/, retrieval/, agent/, genbi/, meetings/, llm/, store/)
+data/samples/         # 가온생명 가상 문서 (직접 만든 가상 데이터라 커밋 가능)
 scripts/              # 주차별 실행 스크립트 (w01_*, w02_* ...)
 eval/golden/          # 골든셋 CSV (3주차~)
 eval/results/         # 평가 실행 결과 (gitignore, 요약표만 docs로 옮김)
@@ -86,11 +102,13 @@ uv run pytest                # 테스트
 uv run ruff check . --fix    # 린트
 uv run ruff format .         # 포맷
 uv run python scripts/w01_llm_call.py   # 1주차 LLM 호출 (사용자가 직접 작성)
+uv run uvicorn insure_copilot.api.main:app --reload --port 8000   # AI 백엔드
+cd web && npm run dev                                              # 화면 (localhost:3000)
 ```
 
 ## 작업 방식
 
 - 주차를 시작할 때는 `/week-start N` 커맨드로 그 주 체크리스트를 확인하고 계획부터 세운다.
-- 커밋은 작게, 메시지 제목은 `[wNN] 무엇을 했는지` 형식 (예: `[w01] 베이스라인 0 결과 기록`).
+- 커밋은 작게, 메시지 제목은 `[wNN] 무엇을 했는지` 형식 (예: `[w01] 베이스라인 0 결과 기록`). 10 → 1 서비스 제작 커밋은 `[build] ...`.
 - 관문 기준을 못 채우면 다음 주차로 넘어가지 말자고 제안한다.
 - 비용: 4주차부터 평가를 반복 실행하므로 LiteLLM 비용 로그를 확인하고, 큰 배치를 돌리기 전에 예상 비용을 먼저 말한다.

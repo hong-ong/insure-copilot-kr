@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+/* 가온생명 컬러 토큰 — 교보생명 홈페이지 컬러톤 참고 (네이비 #121C72 · 그린 #4AA825 · 블루 #2A81EB)
+   로고·심볼은 쓰지 않고 색 분위기만 빌린다. */
+:root {
+  --brand: #121c72;
+  --brand-soft: #e9ecfa;
+  --accent: #4aa825;
+  --accent-soft: #edf7e8;
+  --action: #2a81eb;
+  --action-hover: #2166d4;
+  --bg: #ffffff;
+  --surface: #f7f8fa;
+  --sidebar: #f3f5f9;
+  --text: #242424;
+  --muted: #6b7280;
+  --line: #e4e7ec;
+  --success: #2f8a1c;
+  --warning: #c26a12;
+  --warning-soft: #fdf3e6;
+  --danger: #d6402b;
+  --danger-soft: #fdeceb;
+  --highlight: #fff3b0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: #a9b4ff;
+    --brand-soft: #1e2347;
+    --accent: #7fd35b;
+    --accent-soft: #1d2d17;
+    --action: #5aa2f5;
+    --action-hover: #7db6f8;
+    --bg: #111318;
+    --surface: #181b22;
+    --sidebar: #15181e;
+    --text: #e8eaee;
+    --muted: #9aa1ad;
+    --line: #2a2f3a;
+    --success: #7fd35b;
+    --warning: #f0a54a;
+    --warning-soft: #33261a;
+    --danger: #ff7a66;
+    --danger-soft: #3a1e1b;
+    --highlight: #5a4d12;
+  }
+}
+
+:root[data-theme="dark"] {
+  --brand: #a9b4ff;
+  --brand-soft: #1e2347;
+  --accent: #7fd35b;
+  --accent-soft: #1d2d17;
+  --action: #5aa2f5;
+  --action-hover: #7db6f8;
+  --bg: #111318;
+  --surface: #181b22;
+  --sidebar: #15181e;
+  --text: #e8eaee;
+  --muted: #9aa1ad;
+  --line: #2a2f3a;
+  --success: #7fd35b;
+  --warning: #f0a54a;
+  --warning-soft: #33261a;
+  --danger: #ff7a66;
+  --danger-soft: #3a1e1b;
+  --highlight: #5a4d12;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-highlight: var(--highlight);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all; /* 한국어는 어절 단위로 줄바꿈 */
+  overflow-wrap: anywhere;
+}
+
+/* 답변·원문 마크다운 */
+.prose-gaon {
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.prose-gaon p {
+  margin: 0.4em 0;
+}
+.prose-gaon ul,
+.prose-gaon ol {
+  margin: 0.4em 0;
+  padding-left: 1.3em;
+}
+.prose-gaon ul {
+  list-style: disc;
+}
+.prose-gaon ol {
+  list-style: decimal;
+}
+.prose-gaon h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.8em 0 0.4em;
+}
+.prose-gaon h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0.8em 0 0.3em;
+}
+.prose-gaon h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0.7em 0 0.2em;
+}
+.prose-gaon table {
+  border-collapse: collapse;
+  margin: 0.6em 0;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+.prose-gaon th,
+.prose-gaon td {
+  border: 1px solid var(--line);
+  padding: 0.35em 0.7em;
+  text-align: left;
+}
+.prose-gaon th {
+  background: var(--surface);
+}
+.prose-gaon blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 0.8em;
+  color: var(--muted);
+  margin: 0.5em 0;
+}
+.prose-gaon code {
+  background: var(--surface);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+.prose-gaon strong {
+  font-weight: 700;
+}
+.prose-gaon hr {
+  border-color: var(--line);
+  margin: 1em 0;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
