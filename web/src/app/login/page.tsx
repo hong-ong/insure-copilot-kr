@@ -1,7 +1,7 @@
 // 로그인 화면 = 간단 소개 + 간편로그인(Google·Kakao) + 이메일 + 데모 체험 3종 + 푸터.
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Briefcase, Loader2, Mail, Scale, ShieldCheck } from "lucide-react";
 import { Footer, Wordmark } from "@/components/Brand";
@@ -40,8 +40,23 @@ function LoginInner() {
   const [error, setError] = useState<string | null>(params.get("error") ? "로그인에 실패했어요. 다시 시도해 주세요." : null);
   const [info, setInfo] = useState<string | null>(null);
   const supabase = supabaseBrowser();
+  // Supabase에서 켜진 간편로그인만 누를 수 있게 한다 (꺼진 공급자를 부르면 400 오류가 난다)
+  const [providers, setProviders] = useState<Record<OAuthProvider, boolean> | null>(null);
 
-  async function oauth(provider: "google" | "kakao") {
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+    })
+      .then((r) => r.json())
+      .then((s) => setProviders({ google: !!s.external?.google, kakao: !!s.external?.kakao }))
+      .catch(() => setProviders({ google: false, kakao: false }));
+  }, []);
+
+  async function oauth(provider: OAuthProvider) {
+    if (providers && !providers[provider]) {
+      setError(`${provider === "google" ? "Google" : "카카오"} 로그인은 준비 중이에요. 이메일 또는 데모로 체험해 주세요.`);
+      return;
+    }
     setBusy(provider);
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -49,7 +64,7 @@ function LoginInner() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) {
-      setError(error.message);
+      setError("간편로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.");
       setBusy(null);
     }
   }
@@ -112,6 +127,7 @@ function LoginInner() {
               >
                 {busy === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
                 Google로 계속
+                {providers?.google === false && <SoonBadge />}
               </button>
               <button
                 onClick={() => oauth("kakao")}
@@ -120,6 +136,7 @@ function LoginInner() {
               >
                 {busy === "kakao" ? <Loader2 className="h-4 w-4 animate-spin" /> : <KakaoIcon />}
                 카카오로 계속
+                {providers?.kakao === false && <SoonBadge />}
               </button>
               {!showEmail ? (
                 <button
@@ -213,6 +230,12 @@ export default function LoginPage() {
       <LoginInner />
     </Suspense>
   );
+}
+
+type OAuthProvider = "google" | "kakao";
+
+function SoonBadge() {
+  return <span className="rounded-full bg-black/10 px-2 py-0.5 text-[11px] font-medium opacity-70">준비 중</span>;
 }
 
 function GoogleIcon() {

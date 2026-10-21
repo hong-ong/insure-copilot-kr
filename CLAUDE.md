@@ -71,7 +71,7 @@
   - 주 모델: Gemini 무료 티어 (`gemini/gemini-flash-latest`, fallback `gemini/gemini-flash-lite-latest`), 임베딩 `gemini/gemini-embedding-001`(768차원)
 - 파서: PyMuPDF(PDF) · HWP5(olefile) · HWPX(XML) · python-docx, 글자가 깨지면 Gemini 비전 OCR로 재시도
 - 정보계: DuckDB + Faker 가상 데이터 / 관측: Langfuse(키가 있을 때만)
-- 배포: Vercel(web) + Hugging Face Spaces Docker(api) + Supabase
+- 배포: Vercel(web: gaon-ax) + Vercel Python 함수(api: gaon-ax-api) + Supabase — `docs/setup.md` 5장
 - 커리큘럼(Streamlit·Chroma·bge-m3·Docling)과 다른 이유는 `docs/adr/0001~0003`. 커리큘럼 실험(E2 임베딩 비교 등)은 이 구조 위에서 그대로 한다.
 - 린트·포맷: ruff. 테스트: pytest.
 

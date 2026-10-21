@@ -5,7 +5,7 @@
 전체 구조
 ```
 브라우저 ── Next.js 화면(web/, Vercel) ──┬── Supabase (로그인 · DB · 파일 · 벡터 검색)
-                                        └── AI 백엔드(FastAPI, Hugging Face Spaces) ── Gemini (LiteLLM 경유)
+                                        └── AI 백엔드(FastAPI, Vercel Python 함수) ── Gemini (LiteLLM 경유)
 ```
 
 ---
@@ -30,6 +30,7 @@
    - **Anonymous Sign-Ins: 켜기** ← 데모 체험 버튼이 이걸 쓴다 (익명 로그인 = 가입 없이 임시 계정 발급)
    - Google: Google Cloud Console → OAuth 클라이언트(웹) 생성 → 승인된 리디렉션 URI에 `https://<ref>.supabase.co/auth/v1/callback` → Client ID·Secret을 Supabase에 입력
    - Kakao: [Kakao Developers](https://developers.kakao.com) → 앱 생성 → 카카오 로그인 활성화 → Redirect URI에 `https://<ref>.supabase.co/auth/v1/callback` → **REST API 키**를 Client ID로, 보안 메뉴의 **Client Secret**을 Secret으로 입력. 동의항목에 닉네임·이메일 설정(이메일은 비즈 앱 전환이 필요할 수 있음)
+   - 켜지지 않은 공급자는 로그인 화면이 `/auth/v1/settings`를 읽어 "준비 중"으로 표시한다 (꺼진 채 누르면 Supabase가 400 `provider is not enabled`를 돌려주기 때문)
 4. **Authentication → URL Configuration**
    - Site URL: 배포한 Vercel 주소 (로컬만 쓸 땐 `http://localhost:3000`)
    - Redirect URLs: `http://localhost:3000/**`, `https://*.vercel.app/**`
@@ -57,18 +58,27 @@ cd web; npm install; npm run dev            # http://localhost:3000
 
 ## 5. 배포
 
-**AI 백엔드 → Hugging Face Spaces (무료, 메모리 넉넉)**
-1. huggingface.co → New Space → SDK **Docker** → Blank → 이름 예: `gaon-ax-api`
-2. Space Settings → Variables and secrets에 `.env` 값 등록 (`GEMINI_API_KEY`, `SUPABASE_*`, `CORS_ORIGINS=https://<vercel 주소>`)
-3. `bash scripts/deploy_hf.sh <HF 사용자>/gaon-ax-api` → 빌드 로그 확인 → `https://<사용자>-gaon-ax-api.hf.space/health`
+현재 공개 주소: 화면 https://gaon-ax.vercel.app · AI 백엔드 https://gaon-ax-api.vercel.app/health
 
-**화면 → Vercel**
-1. vercel.com → Import Git Repository → `hong-ong/insure-copilot-kr` → **Root Directory: `web`**
-2. Environment Variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL=https://<사용자>-gaon-ax-api.hf.space`
-3. 배포 주소를 Supabase Site URL과 HF `CORS_ORIGINS`에 반영
+**AI 백엔드 → Vercel Python 함수 (프로젝트 `gaon-ax-api`, 리전 bom1=뭄바이 — Supabase와 같은 지역)**
+(HF Docker Space는 유료화, Render는 별도 가입이 필요해 2026-10-21 Vercel로 옮겼다. 잠들지 않고, 메모리 2GB)
+1. Vercel 프로젝트 `gaon-ax-api` → Settings → Environment Variables:
+   `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `CORS_ORIGINS=https://gaon-ax.vercel.app,http://localhost:3000`, `DEFAULT_MODEL`, `FALLBACK_MODEL`, `EMBEDDING_MODEL`,
+   `EMBEDDING_DIM`, `REASONING_EFFORT=low`, `DEMO_DAILY_LIMIT`,
+   `KIWI_ENABLED=false`(Kiwi 모델 100MB+는 함수 용량 한도 때문에 뺀다), `MART_PATH=/tmp/mart.duckdb`(함수는 /tmp만 쓰기 가능 — 첫 호출 때 1초 만에 마트를 만든다),
+   `LITELLM_LOCAL_MODEL_COST_MAP=True`(시작할 때 인터넷에서 가격표를 받지 않게)
+2. `bash scripts/deploy_api_vercel.sh` → `https://gaon-ax-api.vercel.app/health` 확인
+3. Settings → Deployment Protection → Vercel Authentication **끄기** (켜져 있으면 화면이 API를 못 부른다)
+
+**화면 → Vercel (프로젝트 `gaon-ax`, Root Directory: `web`)**
+1. Environment Variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL=https://gaon-ax-api.vercel.app`
+2. `cd web; npx vercel deploy --prod` (NEXT_PUBLIC_ 값은 빌드 때 박히므로 바꾸면 재배포)
+3. Supabase → Authentication → URL Configuration: Site URL `https://gaon-ax.vercel.app`,
+   Redirect URLs `https://gaon-ax.vercel.app/**`, `http://localhost:3000/**`, `https://*-gaon-insure.vercel.app/**`
 
 무료 플랜 주의 (리스크 레지스터에 기록)
-- HF Spaces 무료는 오래 안 쓰면 잠든다 → 첫 요청 30초 이상. 면접·데모 전에 `/health`로 깨워 두기
+- Vercel 함수는 요청 본문이 4.5MB까지 → 그보다 큰 파일 업로드는 실패한다 (구성안의 10MB 한도와 차이)
 - Supabase 무료는 7일 미사용 시 일시정지 → 주 1회 접속
 - Gemini 무료 티어는 분당·일일 호출 한도가 있다 → 골든셋 평가는 속도 조절
 
