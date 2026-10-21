@@ -59,6 +59,11 @@ function LoginInner() {
     }
     setBusy(provider);
     setError(null);
+    if (provider === "google") {
+      // 구글은 우리 도메인을 거치는 자체 흐름(/auth/google) — 구글 로그인 화면에 supabase.co 대신 우리 도메인이 보인다
+      window.location.href = "/auth/google";
+      return;
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback` },
