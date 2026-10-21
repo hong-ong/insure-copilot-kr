@@ -112,128 +112,128 @@ function LoginInner() {
   }
 
   return (
+    <div className="rounded-2xl border border-line bg-bg p-5 shadow-sm">
+      <div className="space-y-2">
+        <button
+          onClick={() => oauth("google")}
+          disabled={!!busy}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line bg-bg text-sm font-medium hover:bg-surface disabled:opacity-60"
+        >
+          {busy === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+          Google로 계속
+          {providers?.google === false && <SoonBadge />}
+        </button>
+        <button
+          onClick={() => oauth("kakao")}
+          disabled={!!busy}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] text-sm font-medium text-[#191919] hover:brightness-95 disabled:opacity-60"
+        >
+          {busy === "kakao" ? <Loader2 className="h-4 w-4 animate-spin" /> : <KakaoIcon />}
+          카카오로 계속
+          {providers?.kakao === false && <SoonBadge />}
+        </button>
+        {!showEmail ? (
+          <button
+            onClick={() => setShowEmail(true)}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line text-sm font-medium hover:bg-surface"
+          >
+            <Mail className="h-4 w-4" /> 이메일로 계속
+          </button>
+        ) : (
+          <form onSubmit={emailSubmit} className="space-y-2 pt-1">
+            <input
+              type="email"
+              required
+              placeholder="이메일"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm outline-none focus:border-action"
+            />
+            <input
+              type="password"
+              required
+              minLength={8}
+              placeholder="비밀번호 (8자 이상)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm outline-none focus:border-action"
+            />
+            <button
+              type="submit"
+              disabled={!!busy}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {busy === "email" && <Loader2 className="h-4 w-4 animate-spin" />}
+              {mode === "login" ? "로그인" : "가입하기"}
+            </button>
+            <p className="text-center text-xs text-muted">
+              {mode === "login" ? "계정이 없나요? " : "이미 계정이 있나요? "}
+              <button
+                type="button"
+                className="font-semibold text-action"
+                onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              >
+                {mode === "login" ? "가입하기" : "로그인"}
+              </button>
+            </p>
+          </form>
+        )}
+      </div>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-line" />
+        또는 가입 없이 데모로 체험
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <div className="grid gap-2">
+        {DEMOS.map((d) => (
+          <button
+            key={d.role}
+            onClick={() => demo(d.role)}
+            disabled={!!busy}
+            className="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-left hover:border-brand hover:bg-brand-soft disabled:opacity-60"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+              {busy === d.role ? <Loader2 className="h-4 w-4 animate-spin" /> : <d.icon className="h-4 w-4" />}
+            </span>
+            <span>
+              <span className="block text-sm font-semibold">{d.label}</span>
+              <span className="block text-xs text-muted">{d.desc}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-3 text-center text-xs text-muted">
+        데모는 하루 10회 질문, 일부 기능만 쓸 수 있어요. 가입하면 파일 업로드·회의록·검색 기록 저장까지 모두 사용할 수 있습니다.
+      </p>
+
+      {error && <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+      {info && <p className="mt-3 rounded-lg bg-accent-soft px-3 py-2 text-sm text-success">{info}</p>}
+    </div>
+  );
+}
+
+// 소개 문구·푸터는 Suspense 밖에 두어 서버 HTML에 바로 담기게 한다 (로그인 카드만 브라우저에서 그려진다)
+export default function LoginPage() {
+  return (
     <div className="flex min-h-full flex-col">
       <main className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <Wordmark size="lg" href="/login" />
+            <Wordmark size="lg" href="/" />
             <h1 className="mt-5 text-xl font-bold">약관·규정을 출처와 함께 답하는 사내 AI 어시스턴트</h1>
             <p className="mt-2 text-sm text-muted">
               조항을 근거로 답하고, 보험금 지급 판단은 거절하고, 실적 지표는 정의된 대로 계산합니다.
             </p>
           </div>
-
-          <div className="rounded-2xl border border-line bg-bg p-5 shadow-sm">
-            <div className="space-y-2">
-              <button
-                onClick={() => oauth("google")}
-                disabled={!!busy}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line bg-bg text-sm font-medium hover:bg-surface disabled:opacity-60"
-              >
-                {busy === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                Google로 계속
-                {providers?.google === false && <SoonBadge />}
-              </button>
-              <button
-                onClick={() => oauth("kakao")}
-                disabled={!!busy}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] text-sm font-medium text-[#191919] hover:brightness-95 disabled:opacity-60"
-              >
-                {busy === "kakao" ? <Loader2 className="h-4 w-4 animate-spin" /> : <KakaoIcon />}
-                카카오로 계속
-                {providers?.kakao === false && <SoonBadge />}
-              </button>
-              {!showEmail ? (
-                <button
-                  onClick={() => setShowEmail(true)}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line text-sm font-medium hover:bg-surface"
-                >
-                  <Mail className="h-4 w-4" /> 이메일로 계속
-                </button>
-              ) : (
-                <form onSubmit={emailSubmit} className="space-y-2 pt-1">
-                  <input
-                    type="email"
-                    required
-                    placeholder="이메일"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm outline-none focus:border-action"
-                  />
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    placeholder="비밀번호 (8자 이상)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm outline-none focus:border-action"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!!busy}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-                  >
-                    {busy === "email" && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {mode === "login" ? "로그인" : "가입하기"}
-                  </button>
-                  <p className="text-center text-xs text-muted">
-                    {mode === "login" ? "계정이 없나요? " : "이미 계정이 있나요? "}
-                    <button
-                      type="button"
-                      className="font-semibold text-action"
-                      onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                    >
-                      {mode === "login" ? "가입하기" : "로그인"}
-                    </button>
-                  </p>
-                </form>
-              )}
-            </div>
-
-            <div className="my-5 flex items-center gap-3 text-xs text-muted">
-              <span className="h-px flex-1 bg-line" />
-              또는 가입 없이 데모로 체험
-              <span className="h-px flex-1 bg-line" />
-            </div>
-
-            <div className="grid gap-2">
-              {DEMOS.map((d) => (
-                <button
-                  key={d.role}
-                  onClick={() => demo(d.role)}
-                  disabled={!!busy}
-                  className="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-left hover:border-brand hover:bg-brand-soft disabled:opacity-60"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
-                    {busy === d.role ? <Loader2 className="h-4 w-4 animate-spin" /> : <d.icon className="h-4 w-4" />}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold">{d.label}</span>
-                    <span className="block text-xs text-muted">{d.desc}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-center text-xs text-muted">
-              데모는 하루 10회 질문, 일부 기능만 쓸 수 있어요. 가입하면 파일 업로드·회의록·검색 기록 저장까지 모두 사용할 수 있습니다.
-            </p>
-
-            {error && <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
-            {info && <p className="mt-3 rounded-lg bg-accent-soft px-3 py-2 text-sm text-success">{info}</p>}
-          </div>
+          <Suspense fallback={<div className="h-96 rounded-2xl border border-line" />}>
+            <LoginInner />
+          </Suspense>
         </div>
       </main>
       <Footer />
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginInner />
-    </Suspense>
   );
 }
 

@@ -1,5 +1,6 @@
 // 구글이 돌려준 코드를 ID 토큰으로 바꾸고, 그 토큰으로 Supabase 세션(쿠키)을 만든 뒤 앱으로 보낸다.
 import { NextResponse, type NextRequest } from "next/server";
+import { pathAfterLogin } from "@/lib/supabase/after-login";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -34,10 +35,10 @@ export async function GET(request: NextRequest) {
   if (!tokenRes.ok || !token.id_token) return fail(`token exchange ${tokenRes.status} ${token.error ?? ""}`);
 
   const supabase = await supabaseServer();
-  const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token: token.id_token, nonce });
-  if (error) return fail(`supabase ${error.message}`);
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token: token.id_token, nonce });
+  if (error || !data.user) return fail(`supabase ${error?.message ?? "no user"}`);
 
-  const res = NextResponse.redirect(`${origin}/chat`);
+  const res = NextResponse.redirect(`${origin}${await pathAfterLogin(supabase, data.user.id)}`);
   res.cookies.delete({ name: "g_state", path: "/auth/google" });
   res.cookies.delete({ name: "g_nonce", path: "/auth/google" });
   return res;
