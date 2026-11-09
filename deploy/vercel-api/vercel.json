@@ -1,0 +1,7 @@
+{
+  "regions": ["bom1"],
+  "functions": {
+    "api/index.py": { "maxDuration": 120, "excludeFiles": "{.vercel/**,**/__pycache__/**}" }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+}

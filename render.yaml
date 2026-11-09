@@ -1,0 +1,30 @@
+# Render 블루프린트 — AI 백엔드(FastAPI)를 무료 플랜으로 배포한다.
+# 비밀값(sync: false)은 Render 대시보드나 API로 따로 넣는다. 저장소에는 값이 들어가지 않는다.
+services:
+  - type: web
+    name: gaon-ax-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: KIWI_ENABLED
+        value: "false"   # 512MB 메모리 한도 (Kiwi 모델만 약 500MB)
+      - key: DEFAULT_MODEL
+        value: gemini/gemini-flash-lite-latest
+      - key: FALLBACK_MODEL
+        value: gemini/gemini-2.5-flash
+      - key: REASONING_EFFORT
+        value: low

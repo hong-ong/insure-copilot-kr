@@ -1,0 +1,112 @@
+# [임시-AI작성 → 직접 작성으로 교체] 6주차 직접 작성 항목: 지표 5개의 정답 SQL
+#
+# 10 → 1 방식이라 서비스가 돌아가도록 AI가 임시 정의·SQL을 만들었다.
+# 6주차 공부 때: ① 생명보험협회 공시 기준 정의를 찾아 definition을 바꾸고 ② sql을 직접 다시 쓰고
+# ③ 맨 위 표시를 "[직접 작성]"으로 바꾼다. (예: 13회차 유지율의 분모를 '13회차 도래 계약'으로 볼지, 철회 계약을 뺄지)
+#
+# 시맨틱 레이어 규칙: LLM은 아래 지표(key)와 차원(group_by), 기간만 고른다. SQL은 이 템플릿이 만든다.
+# 템플릿 변수: {start} {end} 기간, {scope} 권한 필터(예: a.agent_id = 'A0001'), {dim} 차원 칼럼, {dim_join} 차원 조인
+#
+# 차원(group_by): branch(지점) · channel(채널) · product(상품) · month(월) · agent(설계사 — 본사만)
+
+metrics:
+  training_completion_rate:
+    label: 보수교육 이수율
+    unit: percent
+    owner: 교육팀
+    definition: >-
+      기간(연도) 안에 보수교육을 의무 시간(12시간, 가상 기준) 이상 이수한 설계사 수 ÷ 대상 설계사 수.
+      기간이 1년보다 짧으면 해당 연도 1월 1일부터 기간 끝까지 누적 이수 시간으로 판단한다.
+    grain: 설계사 1명
+    allowed_dims: [branch, channel]
+    sql: |
+      with per_agent as (
+        select a.agent_id, {dim} as dim,
+               coalesce(sum(t.hours), 0) as hours
+        from dim_agent a
+        {dim_join}
+        left join fact_training t
+          on t.agent_id = a.agent_id
+         and t.completed_date between date_trunc('year', date '{end}') and date '{end}'
+        where {scope}
+        group by 1, 2
+      )
+      select dim, avg(case when hours >= 12 then 1.0 else 0.0 end) * 100 as value,
+             count(*) as base
+      from per_agent group by dim order by dim
+
+  retention_13:
+    label: 13회차 유지율
+    unit: percent
+    owner: 영업지원팀
+    definition: >-
+      기간 안에 13회차(계약 후 13개월)가 도래한 계약 중 13회차 보험료까지 납입된 계약의 비율.
+      청약철회 계약은 분모에서 뺀다.
+    grain: 계약 1건
+    allowed_dims: [branch, channel, product]
+    sql: |
+      select {dim} as dim,
+             avg(case when c.retained_13 then 1.0 else 0.0 end) * 100 as value,
+             count(*) as base
+      from fact_contract c
+      join dim_agent a on a.agent_id = c.agent_id
+      {dim_join}
+      where c.retained_13 is not null
+        and c.contract_date + interval 395 day between date '{start}' and date '{end}'
+        and {scope}
+      group by 1 order by 1
+
+  mis_selling_rate:
+    label: 불완전판매비율
+    unit: percent
+    owner: 준법감시팀
+    definition: 기간 안 신계약 중 불완전판매로 판정되어 해지·반환된 계약의 비율.
+    grain: 계약 1건
+    allowed_dims: [branch, channel, product, month]
+    sql: |
+      select {dim} as dim,
+             avg(case when c.mis_sold then 1.0 else 0.0 end) * 100 as value,
+             count(*) as base
+      from fact_contract c
+      join dim_agent a on a.agent_id = c.agent_id
+      {dim_join}
+      where c.contract_date between date '{start}' and date '{end}'
+        and {scope}
+      group by 1 order by 1
+
+  withdrawal_rate:
+    label: 청약철회율
+    unit: percent
+    owner: 영업지원팀
+    definition: 기간 안 신계약 중 청약철회된 계약의 비율.
+    grain: 계약 1건
+    allowed_dims: [branch, channel, product, month]
+    sql: |
+      select {dim} as dim,
+             avg(case when c.withdrawn then 1.0 else 0.0 end) * 100 as value,
+             count(*) as base
+      from fact_contract c
+      join dim_agent a on a.agent_id = c.agent_id
+      {dim_join}
+      where c.contract_date between date '{start}' and date '{end}'
+        and {scope}
+      group by 1 order by 1
+
+  new_contracts_per_agent:
+    label: 설계사 1인당 신계약 건수
+    unit: count
+    owner: 영업지원팀
+    definition: 기간 안 신계약 건수 ÷ 해당 범위 설계사 수 (본인 조회 시에는 본인의 신계약 건수).
+    grain: 설계사 1명
+    allowed_dims: [branch, channel]
+    sql: |
+      select {dim} as dim,
+             count(c.contract_id) * 1.0 / nullif(count(distinct a.agent_id), 0) as value,
+             count(distinct a.agent_id) as base
+      from dim_agent a
+      {dim_join}
+      left join fact_contract c
+        on c.agent_id = a.agent_id
+       and c.contract_date between date '{start}' and date '{end}'
+      where {scope}
+      group by 1 order by 1

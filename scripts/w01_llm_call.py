@@ -20,6 +20,7 @@ def call_cloud_model(prompt: str, model: str = settings.default_model) -> str:
     resp = litellm.completion(
         model=model,
         messages=[{"role": "user", "content": prompt}],
+        num_retries=3,
     )
     return resp.choices[0].message.content
 
