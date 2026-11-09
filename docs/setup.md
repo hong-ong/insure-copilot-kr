@@ -79,7 +79,10 @@ cd web; npm install; npm run dev            # http://localhost:3000
 
 무료 플랜 주의 (리스크 레지스터에 기록)
 - Vercel 함수는 요청 본문이 4.5MB까지 → 그보다 큰 파일 업로드는 실패한다 (구성안의 10MB 한도와 차이)
-- Supabase 무료는 7일 미사용 시 일시정지 → 주 1회 접속
+- Supabase 무료는 7일 미사용 시 일시정지 → `.github/workflows/supabase-keepalive.yml`이 3일마다 DB에 조회를 한 번 보낸다
+  (저장소 Settings → Secrets → Actions에 `SUPABASE_URL`, `SUPABASE_ANON_KEY` 필요. 2026-11-09 실제로 12일 미사용 후 정지돼 추가).
+  GitHub은 저장소에 60일 동안 활동이 없으면 예약 워크플로를 끈다 → 그 전에 커밋 한 번 또는 Actions 탭에서 다시 켜기.
+  이미 정지됐다면 대시보드에서 Restore project (또는 관리 API `POST /v1/projects/{ref}/restore`)
 - Gemini 무료 티어는 분당·일일 호출 한도가 있다 → 골든셋 평가는 속도 조절
 
 ## 6. 실제 계정에 법무팀·관리자 권한 주기
