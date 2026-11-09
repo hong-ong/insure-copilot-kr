@@ -1,0 +1,27 @@
+# Supabase 무료 플랜은 7일 동안 DB 요청이 없으면 프로젝트를 일시정지한다.
+# 포트폴리오 사이트가 언제 열려도 동작하도록 3일마다 가벼운 조회를 한 번 보낸다.
+# 필요한 저장소 시크릿: SUPABASE_URL, SUPABASE_ANON_KEY (공개용 anon 키 — RLS가 적용돼 빈 결과만 받는다)
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: "17 3 */3 * *"   # 3일마다 03:17 UTC (한국 12:17)
+  workflow_dispatch:          # Actions 탭에서 수동 실행
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: DB에 가벼운 조회 보내기
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          code=$(curl -s -o /tmp/body.txt -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/documents?select=id&limit=1")
+          echo "HTTP $code"
+          # 실패하면 워크플로가 빨간불이 되고 GitHub이 메일로 알려 준다 (이미 정지됐을 때 바로 알 수 있게)
+          if [ "$code" != "200" ]; then cat /tmp/body.txt; exit 1; fi
