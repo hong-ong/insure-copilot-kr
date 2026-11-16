@@ -31,3 +31,18 @@ B + Hugging Face Spaces. 임베딩은 LiteLLM을 거쳐 `gemini/gemini-embedding
 - 얻은 것: 가벼운 컨테이너, 무료 상시 데모, 이 PC에서 설치 위험 없음
 - 포기한 것: 로컬 임베딩(오프라인·망분리 환경 대응) — 면접 질문 "망분리 환경이면?"의 답으로 A안을 설명
 - 재검토 조건: E2에서 bge-m3/KURE가 Recall@5를 5%p 이상 높이면 교체(차원이 바뀌므로 재색인 필요)
+
+## 개정 2026-10-21
+
+**바뀐 것:** 배포 대상을 Hugging Face Spaces → **Vercel Python 함수**(프로젝트 `gaon-ax-api`, 리전 bom1)로 바꿨다.
+임베딩·파서 결정(B안: Gemini 임베딩 + 자체 파서)은 그대로다.
+
+**경위**
+- 2026-10-19 (`ee0ec83`): Hugging Face가 무료 CPU Docker Space를 PRO 전용으로 바꿔(402 응답) Render 무료(512MB)로 변경했다.
+  메모리 실측 결과 API 약 230MB + Kiwi 모델 약 500MB라서 `KIWI_ENABLED=false` 스위치를 추가했다.
+- 2026-10-21 (`9a9ceac`): Render는 별도 가입이 필요해 Vercel Python 함수로 배포했다. Kiwi는 빼고, 마트는 첫 호출 때 `/tmp`에 만든다.
+
+**바뀐 트레이드오프** (`docs/setup.md` 5장)
+- 얻은 것: 잠들지 않음, 메모리 2GB
+- 포기한 것: 요청 본문 4.5MB 한도 → 구성안의 업로드 10MB 한도보다 큰 파일은 실패. Kiwi(100MB+)는 함수 용량 한도로 제외
+- HF 배포 스크립트(`scripts/deploy_hf.py`)는 HF PRO를 쓸 경우를 위해 보관
