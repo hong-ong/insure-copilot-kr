@@ -85,6 +85,7 @@ docs/                 커리큘럼 · 기획 산출물 · ADR · 학습 노트 �
 - [0001](docs/adr/0001-web-stack-nextjs-supabase.md) 화면을 Streamlit 대신 Next.js + Supabase로
 - [0002](docs/adr/0002-vector-store-pgvector.md) 벡터 저장소를 pgvector로 — 권한 필터를 RLS로 강제
 - [0003](docs/adr/0003-lightweight-ai-backend.md) Gemini 임베딩 + 자체 파서, 무료 배포 조합
+- [0004](docs/adr/0004-kyobo-terms-as-gaon-corpus.md) 가온생명 RAG의 약관 원문을 교보생명 공시 약관으로 교체
 
 ## 데이터 출처
 
