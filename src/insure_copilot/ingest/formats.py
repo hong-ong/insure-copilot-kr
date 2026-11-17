@@ -88,7 +88,7 @@ def _extract_pdf(data: bytes, fmt: str) -> Extracted:
     with pymupdf.open(stream=data, filetype="pdf") as doc:
         if doc.needs_pass:
             raise UnsupportedFormat("암호가 걸린 PDF는 열 수 없습니다.")
-        pages = [page.get_text("text") for page in doc]
+        pages = [_page_text_with_spacing(page) for page in doc]
         image_pages = sum(
             1 for page in doc if page.get_images() and len(page.get_text().strip()) < 30
         )
@@ -97,6 +97,39 @@ def _extract_pdf(data: bytes, fmt: str) -> Extracted:
         result.is_scanned_like = True
         result.issues.append(f"스캔 이미지로 보이는 페이지 {image_pages}/{len(pages)}")
     return result
+
+
+# 글자 사이 간격이 글자 크기의 이 비율보다 크면 띄어쓰기로 본다.
+# 일부 PDF(교보생명 최근 약관 등)는 공백 문자 없이 글자 위치만으로 띄어쓰기를 표현해서,
+# 기본 추출(get_text("text"))로는 "이특약의약관은…"처럼 붙어 나온다.
+_SPACE_GAP_RATIO = 0.25
+
+
+def _page_text_with_spacing(page) -> str:
+    """TODO(재홍): 무엇을 왜 하는가 한 문장"""
+    lines = []
+    for block in page.get_text("rawdict")["blocks"]:
+        for line in block.get("lines", []):
+            out, prev_x1 = [], None
+            for span in line["spans"]:
+                gap = span["size"] * _SPACE_GAP_RATIO
+                for ch in span["chars"]:
+                    c = ch["c"]
+                    if c.isspace():
+                        if out and out[-1] != " ":
+                            out.append(" ")
+                    else:
+                        if (
+                            prev_x1 is not None
+                            and ch["bbox"][0] - prev_x1 > gap
+                            and out
+                            and out[-1] != " "
+                        ):
+                            out.append(" ")
+                        out.append(c)
+                    prev_x1 = ch["bbox"][2]
+            lines.append("".join(out))
+    return "\n".join(lines) + "\n"
 
 
 def render_pdf_pages(data: bytes, max_pages: int, dpi: int = 150) -> list[bytes]:
