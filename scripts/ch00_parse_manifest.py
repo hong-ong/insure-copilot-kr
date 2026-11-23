@@ -55,7 +55,12 @@ def parse_one(row: dict, out: Path) -> dict:
     (out / f"{stem}.md").write_text(text, encoding="utf-8")
     with open(out / f"{stem}.chunks.jsonl", "w", encoding="utf-8") as f:
         for c in chunks:
-            f.write(json.dumps(asdict(c), ensure_ascii=False) + "\n")
+            row_out = asdict(c)
+            # 실제 임베딩에 들어갈 글 (위치 정보 머리말 + 본문) — 적재 전에 눈으로 확인하는 용도
+            row_out["embedding_text"] = clauses.embedding_text(
+                row["display_name"], f"{row['sale_from']} 판", c
+            )
+            f.write(json.dumps(row_out, ensure_ascii=False) + "\n")
 
     sections = clauses.find_sections(text)
     kinds = Counter(s.kind for s in sections)
@@ -84,6 +89,8 @@ def parse_one(row: dict, out: Path) -> dict:
         "law_appendix": kinds["부록"],
         "articles": len({(c.section, c.article_no) for c in chunks if c.article_no}),
         "dup_chunk_keys": sum(1 for c in chunks if re.search(r"~\d+$", c.chunk_key)),
+        "excluded_copies": sum(1 for s in sections if s.kind == "제외" and not s.parent),
+        "over_limit_chunks": sum(1 for n in lens if n > clauses.MAX_CHUNK_CHARS),
         "avg_chunk_chars": sum(lens) // len(lens),
         "max_chunk_chars": max(lens),
     }

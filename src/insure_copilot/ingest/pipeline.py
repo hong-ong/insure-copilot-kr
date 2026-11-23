@@ -145,7 +145,8 @@ def activate_document(document_id: str) -> int:
     chunks = clauses.split_clauses(text, page_starts)
     for c in chunks:
         c.text = c.text.replace(PAGE_BREAK, "\n")
-    vectors = embed([f"{doc['title']} {c.heading}\n{c.text}" for c in chunks]) if chunks else []
+    texts = [clauses.embedding_text(doc["title"], doc.get("version_label"), c) for c in chunks]
+    vectors = embed(texts) if chunks else []
 
     sb.table("chunks").delete().eq("document_id", document_id).execute()
     rows = []
